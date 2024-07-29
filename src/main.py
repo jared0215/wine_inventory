@@ -1,13 +1,10 @@
+from views import WineInventoryApp
 import tkinter as tk
 
 def main():
     root = tk.Tk()
-    root.title("Wine Inventory Management")
-    root.geometry("800x600")
-
-    label = tk.Label(root, text="Welcome to Wine Inventory Management")
-    label.pack(pady=20)
-
+    app = WineInventoryApp(root)
+    root.protocol("WM_DELETE_WINDOW", app.close_db_connection)
     root.mainloop()
 
 if __name__ == "__main__":
