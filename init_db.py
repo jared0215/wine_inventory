@@ -2,10 +2,15 @@
 
 from src.models import Database
 
-db = Database()
-db.create_tables()
+def initialize_database():
+    db = Database()
+    db.create_tables()
 
-def populate_initial_data():
+    populate_initial_data(db)
+
+    db.close_connection()
+
+def populate_initial_data(db):
     cursor = db.connection.cursor()
 
     # Populate the types table if empty
@@ -22,5 +27,7 @@ def populate_initial_data():
         db.connection.commit()
         print("Regions table populated with initial data.")
 
-populate_initial_data()
-db.close_connection()
+    cursor.close()
+
+if __name__ == "__main__":
+    initialize_database()

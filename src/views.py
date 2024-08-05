@@ -3,7 +3,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from models import Database
 from styles import apply_theme
-from wine import Wine
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 class WineInventoryApp:
     def __init__(self, root):
@@ -51,10 +53,7 @@ class WineInventoryApp:
         # Wine Type Dropdown
         self.type_label = ttk.Label(self.add_wine_window, text="Wine Type")
         self.type_label.pack(pady=5)
-        cursor = self.db.connection.cursor()
-        cursor.execute("SELECT type_name FROM types")
-        types = [row[0] for row in cursor.fetchall()]
-        self.type_combobox = ttk.Combobox(self.add_wine_window, values=types)
+        self.type_combobox = ttk.Combobox(self.add_wine_window, values=self.db.get_types())
         self.type_combobox.pack(pady=5)
 
         # Wine Year / Vintage Entry
@@ -66,9 +65,7 @@ class WineInventoryApp:
         # Wine Region Dropdown
         self.region_label = ttk.Label(self.add_wine_window, text="Region")
         self.region_label.pack(pady=5)
-        cursor.execute("SELECT region_name FROM regions")
-        regions = [row[0] for row in cursor.fetchall()]
-        self.region_combobox = ttk.Combobox(self.add_wine_window, values=regions)
+        self.region_combobox = ttk.Combobox(self.add_wine_window, values=self.db.get_regions())
         self.region_combobox.pack(pady=5)
 
         # Wine Price Entry
@@ -104,21 +101,21 @@ class WineInventoryApp:
         price = float(price)
         quantity = int(quantity)
 
-        # Get type_id and region_id
-        cursor = self.db.connection.cursor()
-        cursor.execute("SELECT id FROM types WHERE type_name = %s", (wine_type,))
-        type_id = cursor.fetchone()[0]
+        try:
+            type_id = self.db.get_id_from_name('types', wine_type)
+            region_id = self.db.get_id_from_name('regions', region)
 
-        cursor.execute("SELECT id FROM regions WHERE region_name = %s", (region,))
-        region_id = cursor.fetchone()[0]
-
-        cursor.execute(
-            "INSERT INTO wines (name, type_id, year, region_id, price, quantity) VALUES (%s, %s, %s, %s, %s, %s)",
-            (name, type_id, year, region_id, price, quantity)
-        )
-        self.db.connection.commit()
-        messagebox.showinfo("Success", f"{name} added successfully!")
-        self.add_wine_window.destroy()
+            with self.db.connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO wines (name, type_id, year, region_id, price, quantity) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (name, type_id, year, region_id, price, quantity)
+                )
+            self.db.connection.commit()
+            messagebox.showinfo("Success", f"{name} added successfully!")
+            self.add_wine_window.destroy()
+        except Exception as e:
+            logging.error(f"Error saving wine: {e}")
+            messagebox.showerror("Database Error", "An error occurred while saving the wine.")
 
     def update_wine(self):
         # Implement update wine functionality here
@@ -147,7 +144,7 @@ class WineInventoryApp:
         self.tree.pack(fill=tk.BOTH, expand=True)
 
         # Fetch the wine data from the database using get_all_wines
-        wines = self.db.get_all_wines()  # Assuming self.db is an instance of your Database class
+        wines = self.db.get_all_wines()  
         for wine in wines:
             self.tree.insert("", tk.END, values=(wine['name'], wine['type_name'], wine['year'], wine['region_name'], wine['price'], wine['quantity']))
 
